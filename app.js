@@ -110,7 +110,7 @@
   }
 
   async function post(body) {
-    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 60000);
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 90000);
     try {
       // text/plain เพื่อเลี่ยง CORS preflight ของ Apps Script
       const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body), signal: ctl.signal });
@@ -133,7 +133,10 @@
       if (!res.ok) addError(res.error || "เกิดข้อผิดพลาด กรุณาลองใหม่");
       else { addModel(res, text); if (res.type !== "error") state.history.push({ role: "user", text }, { role: "model", text: res.answer.slice(0, 1000) }); }
     } catch (e) {
-      wait.remove(); addError("เชื่อมต่อไม่สำเร็จหรือใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
+      wait.remove();
+      addError(e && e.name === "AbortError" ? "เซิร์ฟเวอร์ใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง"
+        : e instanceof SyntaxError ? "เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ ตรวจว่า Deploy เป็น Web App แบบ Anyone และเป็น New version ล่าสุด"
+        : "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ ตรวจ API_URL ใน config.js และอินเทอร์เน็ต");
     } finally { state.busy = false; sendBtn.disabled = false; input.focus(); }
   }
 
