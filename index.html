@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผู้ช่วยตอบคำถามการเลือกตั้ง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Noto+Serif+Thai:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap chatpage">
+  <header>
+    <h1>ผู้ช่วยตอบคำถามการเลือกตั้ง</h1>
+    <p>ถามต่อเนื่องได้หลายข้อในหน้าเดียว ตอบจากฐานข้อมูลของสำนักงานและค้นข้อมูลออนไลน์ พร้อมแหล่งอ้างอิง</p>
+  </header>
+
+  <main id="chat" aria-live="polite"></main>
+
+  <section id="ballot" class="ballot" aria-label="คำถามแนะนำ">
+    <div class="ballot-head">เลือกคำถามที่อยากถาม</div>
+    <div id="tabs" class="tabs" role="group" aria-label="หมวดคำถาม"></div>
+    <div id="options"></div>
+  </section>
+
+  <div class="composer">
+    <div class="composer-row">
+      <button id="reset" class="ghost" type="button" hidden>เริ่มใหม่</button>
+      <button id="suggest" class="ghost" type="button" aria-label="คำถามแนะนำ" title="คำถามแนะนำ">คำถามแนะนำ</button>
+      <textarea id="input" rows="1" maxlength="500" placeholder="พิมพ์คำถามเกี่ยวกับการเลือกตั้ง" aria-label="คำถาม"></textarea>
+      <button id="send" type="button">ถาม</button>
+    </div>
+    <p class="note">ข้อมูลเพื่อประกอบความเข้าใจ ไม่ใช่คำวินิจฉัยอย่างเป็นทางการ โปรดตรวจสอบกับ กกต. อีกครั้ง และอย่าพิมพ์เลขบัตรประชาชนหรือข้อมูลส่วนตัว</p>
+  </div>
+</div>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

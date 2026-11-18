@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>จัดการระบบ — ผู้ช่วยตอบคำถามการเลือกตั้ง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Noto+Serif+Thai:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap wide">
+  <header><h1>จัดการระบบ</h1><p>ดูคำถามล่าสุด ความเห็นผู้ใช้ และจัดการคำตอบมาตรฐาน (FAQ)</p></header>
+
+  <section id="login" class="panel">
+    <h2>เข้าสู่ระบบ</h2>
+    <input id="pw" type="password" placeholder="รหัสผ่านแอดมิน" autocomplete="current-password" aria-label="รหัสผ่าน">
+    <button id="go" class="btn" type="button">เข้าสู่ระบบ</button>
+    <p id="loginErr" class="note"></p>
+  </section>
+
+  <div id="app" hidden>
+    <section class="panel">
+      <h2>เพิ่ม/แก้ไขคำตอบมาตรฐาน</h2>
+      <input id="fq" placeholder="คำถาม" aria-label="คำถาม">
+      <input id="fk" placeholder="คำสำคัญ คั่นด้วย , (ใช้ 2 คำขึ้นไปที่เฉพาะเจาะจง)" aria-label="คำสำคัญ">
+      <textarea id="fa" rows="4" placeholder="คำตอบ" aria-label="คำตอบ"></textarea>
+      <input id="fs" placeholder="แหล่งอ้างอิง (URL)" aria-label="แหล่งอ้างอิง">
+      <input id="fid" type="hidden">
+      <button id="save" class="btn" type="button">บันทึก FAQ</button>
+      <button id="clear" class="ghost" type="button">ล้างฟอร์ม</button>
+    </section>
+    <section class="panel"><h2>คำตอบมาตรฐาน (FAQ)</h2><table id="tFaq"></table></section>
+    <section class="panel"><h2>ความเห็นผู้ใช้ล่าสุด</h2><table id="tFb"></table></section>
+    <section class="panel"><h2>คำถามล่าสุด 100 รายการ</h2><table id="tLog"></table></section>
+  </div>
+</div>
+<script src="config.js"></script>
+<script>
+(() => {
+  const API = window.CONFIG.API_URL, $ = (id) => document.getElementById(id);
+  let token = sessionStorage.getItem("adm") || "";
+  const post = async (b) => (await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ token }, b)) })).json();
+
+  function table(el, head, rows, extra) {
+    el.innerHTML = "";
+    const tr = el.insertRow(); head.concat(extra ? [""] : []).forEach((h) => { const th = document.createElement("th"); th.textContent = h; tr.appendChild(th); });
+    rows.forEach((r) => {
+      const row = el.insertRow();
+      r.forEach((v) => { row.insertCell().textContent = String(v).slice(0, 300); });
+      if (extra) { const c = row.insertCell(); extra(r).forEach((b) => c.appendChild(b)); }
+    });
+  }
+  const btn = (t, f) => { const b = document.createElement("button"); b.type = "button"; b.className = "ghost"; b.textContent = t; b.onclick = f; return b; };
+  function fill(q, k, a, s, id) { $("fq").value = q; $("fk").value = k; $("fa").value = a; $("fs").value = s; $("fid").value = id; $("fq").scrollIntoView(); }
+
+  async function load() {
+    const d = await post({ action: "admin_data" });
+    if (!d.ok) { token = ""; sessionStorage.removeItem("adm"); $("login").hidden = false; $("app").hidden = true; $("loginErr").textContent = d.error || ""; return; }
+    $("login").hidden = true; $("app").hidden = false;
+    table($("tFaq"), ["คำถาม", "คำสำคัญ", "คำตอบ"], d.faq.map((r) => [r[1], r[2], r[3]]), null);
+    // ปุ่มแก้ไข/ลบของ FAQ
+    Array.from($("tFaq").rows).slice(1).forEach((row, i) => {
+      const f = d.faq[i], c = row.insertCell();
+      c.appendChild(btn("แก้ไข", () => fill(f[1], f[2], f[3], f[4], f[0])));
+      c.appendChild(btn("ลบ", async () => { if (confirm("ลบรายการนี้?")) { await post({ action: "admin_faq_delete", id: f[0] }); load(); } }));
+    });
+    table($("tFb"), ["เวลา", "คะแนน", "คำถาม", "คำตอบ"], d.feedback.map((r) => [r[0], r[2], r[3], r[4]]), null);
+    table($("tLog"), ["เวลา", "ประเภท", "คำถาม", "คำตอบ"], d.logs.map((r) => [r[0], r[4], r[2], r[3]]), null);
+    Array.from($("tLog").rows).slice(1).forEach((row, i) => {
+      const r = d.logs[i], c = row.insertCell();
+      c.appendChild(btn("ทำเป็น FAQ", () => fill(r[2], "", r[3], "", "")));
+    });
+  }
+
+  $("go").onclick = async () => {
+    $("loginErr").textContent = "";
+    const r = await post({ action: "admin_login", password: $("pw").value });
+    if (!r.ok) { $("loginErr").textContent = r.error; return; }
+    token = r.token; sessionStorage.setItem("adm", token); $("pw").value = ""; load();
+  };
+  $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") $("go").click(); });
+  $("save").onclick = async () => {
+    const r = await post({ action: "admin_faq_save", id: $("fid").value, question: $("fq").value, keywords: $("fk").value, answer: $("fa").value, source: $("fs").value });
+    if (!r.ok) { alert(r.error); return; }
+    fill("", "", "", "", ""); load();
+  };
+  $("clear").onclick = () => fill("", "", "", "", "");
+  if (token) load();
+})();
+</script>
+</body>
+</html>
