@@ -25,10 +25,11 @@
   </section>
 
   <div class="composer">
+    <div id="ac" class="ac" role="listbox" aria-label="คำถามที่ใกล้เคียง" hidden></div>
     <div class="composer-row">
       <button id="reset" class="ghost" type="button" hidden>เริ่มใหม่</button>
       <button id="suggest" class="ghost" type="button" aria-label="คำถามแนะนำ" title="คำถามแนะนำ">คำถามแนะนำ</button>
-      <textarea id="input" rows="1" maxlength="500" placeholder="พิมพ์คำถามเกี่ยวกับการเลือกตั้ง" aria-label="คำถาม"></textarea>
+      <textarea id="input" rows="1" maxlength="500" placeholder="พิมพ์คำถามหรือคำสำคัญ เช่น ใบแดง ซื้อเสียง บัตรเสีย" autocomplete="off" aria-label="คำถาม"></textarea>
       <button id="send" type="button">ถาม</button>
     </div>
     <p class="note">ข้อมูลเพื่อประกอบความเข้าใจ ไม่ใช่คำวินิจฉัยอย่างเป็นทางการ โปรดตรวจสอบกับ กกต. อีกครั้ง และอย่าพิมพ์เลขบัตรประชาชนหรือข้อมูลส่วนตัว</p>
