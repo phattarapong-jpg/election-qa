@@ -1,7 +1,7 @@
 (() => {
   const API = (window.CONFIG || {}).API_URL;
   const $ = (id) => document.getElementById(id);
-  const chat = $("chat"), input = $("input"), sendBtn = $("send"), ballot = $("ballot"), resetBtn = $("reset"), suggestBtn = $("suggest");
+  const chat = $("chat"), input = $("input"), sendBtn = $("send"), ballot = $("ballot"), resetBtn = $("reset"), suggestBtn = $("suggest"), ac = $("ac");
 
   const CATS = {
     "": { label: "ทุกหมวด", q: [
@@ -117,6 +117,13 @@
       });
       meta.appendChild(fb); d.appendChild(meta);
     }
+    if (!isErr && (res.suggestions || []).length) {
+      const r = document.createElement("div"); r.className = "related"; r.textContent = "คำถามใกล้เคียง";
+      res.suggestions.slice(0, 4).forEach((q) => {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = q; b.onclick = () => send(q); r.appendChild(b);
+      });
+      d.appendChild(r);
+    }
     chat.appendChild(d); d.scrollIntoView({ block: "start" });
   }
   function addError(msg) {
@@ -146,7 +153,7 @@
     text = (text || "").trim();
     if (!text || state.busy) return;
     if (!API || API.includes("วางรหัส")) { addError("ยังไม่ได้ตั้งค่า API_URL ในไฟล์ config.js"); return; }
-    state.busy = true; sendBtn.disabled = true;
+    state.busy = true; sendBtn.disabled = true; acSeq++; acHide();
     const history = historyOf();                       // บริบทก่อนข้อนี้ (สูงสุด 10 ข้อความ)
     state.msgs.push({ role: "user", text }); save(); syncUI();
     addUser(text); input.value = ""; autosize();
@@ -157,12 +164,39 @@
       if (!res.ok) addError(res.error || "เกิดข้อผิดพลาด กรุณาลองใหม่");
       else {
         addModel(res, text);
-        if (res.type !== "error") { state.msgs.push({ role: "model", q: text, res: { type: res.type, mode: res.mode, answer: res.answer, sources: res.sources || [] } }); save(); }
+        if (res.type !== "error") { state.msgs.push({ role: "model", q: text, res: { type: res.type, mode: res.mode, answer: res.answer, sources: res.sources || [], suggestions: res.suggestions || [] } }); save(); }
       }
     } catch (e) {
       wait.remove(); addError("เชื่อมต่อไม่สำเร็จหรือใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง");
     } finally { state.busy = false; sendBtn.disabled = false; input.focus(); }
   }
+
+  // ---------- เสนอคำถามใกล้เคียงขณะพิมพ์ ----------
+  let acTimer = 0, acSeq = 0;
+  const acHide = () => { ac.hidden = true; ac.innerHTML = ""; };
+  function acShow(items) {
+    ac.innerHTML = "";
+    if (!items.length) { ac.hidden = true; return; }
+    items.forEach((q) => {
+      const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "option"); b.textContent = q;
+      b.onmousedown = (e) => e.preventDefault();
+      b.onclick = () => { acHide(); send(q); };
+      ac.appendChild(b);
+    });
+    ac.hidden = false;
+  }
+  function acQuery() {
+    clearTimeout(acTimer);
+    const v = input.value.trim();
+    if (v.length < 2 || !API) { acSeq++; acHide(); return; }
+    acTimer = setTimeout(async () => {
+      const my = ++acSeq;
+      try { const r = await post({ action: "suggest", clientId, q: v }); if (my === acSeq && r.ok && input.value.trim() === v) acShow(r.items || []); } catch (e) {}
+    }, 300);
+  }
+  input.addEventListener("input", acQuery);
+  input.addEventListener("blur", () => setTimeout(acHide, 150));
+  input.addEventListener("keydown", (e) => { if (e.key === "Escape") acHide(); });
 
   function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 140) + "px"; }
   input.addEventListener("input", autosize);
